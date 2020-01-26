@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Apos.Engine</PackageId>
+    <Title>Apos.Engine</Title>
+    <Version>0.1.0</Version>
+    <Description>Engine built on top of MonoGame.</Description>
+    <Authors>Dean Reynolds;Jean-David Moisan</Authors>
+    <Copyright>Copyright 2020</Copyright>
+    <PackageTags>gamedev;monogame;engine</PackageTags>
+    <PackageIcon>Icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/Apostolique/Apos.Engine</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Apostolique/Apos.Engine</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL.Core" PrivateAssets="All" Version="3.8.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../img/Icon.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+</Project>
