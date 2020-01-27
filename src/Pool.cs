@@ -12,7 +12,7 @@ namespace Apos.Engine
     /// <summary>An object pool of <typeparamref name="T"/>. See <see cref="IPoolable"/></summary>
     public static class Pool<T> where T : class, new()
     {
-        const int _defaultCapacity = 4;
+        const int _defCap = 4;
 
         /// <summary>Returns the amount of free <typeparamref name="T"/> objects</summary>
         public static int Count { get; private set; }
@@ -28,31 +28,35 @@ namespace Apos.Engine
         /// <summary>This will expand the stored amount of free <typeparamref name="T"/> objects by <paramref name="amount"/></summary>
         public static void Expand(int amount)
         {
-            for (int i = 0; i < amount; i++)
-                Free(new T());
+            ExpandArr(amount);
+            for (var i = 0; i < amount; i++)
+                _arr[Count++] = new T();
         }
 
         /// <summary>Returns a free instance of <typeparamref name="T"/> and auto-expand if there's none available</summary>
         public static T Spawn()
         {
             if (Count == 0)
-                Expand(_defaultCapacity);
+                Expand(_defCap);
             T item = _arr[--Count];
             _arr[Count] = default;
             return item;
         }
-        /// <summary>This will free the <paramref name="obj"/> object for use when <see cref="Spawn"/> is called (on <typeparamref name="T"/>)</summary>
+        /// <summary>This will free the <paramref name="obj"/> object for use when <see cref="Spawn"/> is called</summary>
         public static void Free(T obj)
         {
             if (obj is IPoolable p)
                 p.Reset();
             if (Count == _arr.Length)
-            {
-                T[] newArr = new T[_arr.Length + _defaultCapacity];
-                Array.Copy(_arr, 0, newArr, 0, Count);
-                _arr = newArr;
-            }
+                ExpandArr(_defCap);
             _arr[Count++] = obj;
+        }
+
+        static void ExpandArr(int amount)
+        {
+            var newArr = new T[_arr.Length + amount];
+            Array.Copy(_arr, 0, newArr, 0, Count);
+            _arr = newArr;
         }
     }
 }
