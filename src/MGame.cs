@@ -197,7 +197,6 @@ namespace Apos.Engine
                 GraphicsProfile = GraphicsProfile.HiDef,
                 SynchronizeWithVerticalRetrace = false
             };
-            _oldBackBufferSize = (GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
             Content = base.Content;
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
@@ -213,6 +212,7 @@ namespace Apos.Engine
         protected override void Initialize()
         {
             SpriteBatchExtensions.Initialize(GraphicsDevice = base.GraphicsDevice);
+            _oldBackBufferSize = (GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
             _oldViewportRes = (Viewport.Width, Viewport.Height);
             base.Initialize();
         }
