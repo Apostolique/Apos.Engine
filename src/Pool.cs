@@ -2,10 +2,10 @@
 
 namespace Apos.Engine
 {
-    /// <summary>This is an interface to implement if you need a reset method when the object is free'd. NOT REQUIRED</summary>
+    /// <summary>An interface to implement if you need a reset method when the object is free'd. NOT REQUIRED</summary>
     public interface IPoolable
     {
-        /// <summary>This will auto-call when <see cref="Pool{T}.Free(T)"/> is called on this object</summary>
+        /// <summary>Auto-called when <see cref="Pool{T}.Free(T)"/> is called on this object</summary>
         void Reset();
     }
 
@@ -19,13 +19,13 @@ namespace Apos.Engine
 
         static T[] _arr = new T[0];
 
-        /// <summary>This will ensure there is <paramref name="size"/> amount of free <typeparamref name="T"/> objects</summary>
+        /// <summary>Ensures there is <paramref name="size"/> amount of free <typeparamref name="T"/> objects</summary>
         public static void EnsureSize(int size)
         {
             if (Count < size)
                 Expand(size - Count);
         }
-        /// <summary>This will expand the stored amount of free <typeparamref name="T"/> objects by <paramref name="amount"/></summary>
+        /// <summary>Expands the stored amount of free <typeparamref name="T"/> objects by <paramref name="amount"/></summary>
         public static void Expand(int amount)
         {
             ExpandArr(amount);
@@ -33,7 +33,7 @@ namespace Apos.Engine
                 _arr[Count++] = new T();
         }
 
-        /// <summary>Returns a free instance of <typeparamref name="T"/> and auto-expand if there's none available</summary>
+        /// <summary>Returns a free instance of <typeparamref name="T"/> and auto-expands if there's none available</summary>
         public static T Spawn()
         {
             if (Count == 0)
@@ -42,7 +42,8 @@ namespace Apos.Engine
             _arr[Count] = default;
             return item;
         }
-        /// <summary>This will free the <paramref name="obj"/> object for use when <see cref="Spawn"/> is called</summary>
+        /// <summary>Frees <paramref name="obj"/> for use when <see cref="Spawn"/> is called
+        /// Call <see cref="Free(T)"/> on <paramref name="obj"/> when you're done with it</summary>
         public static void Free(T obj)
         {
             if (obj is IPoolable p)
