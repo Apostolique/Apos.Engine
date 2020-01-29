@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL.Core" PrivateAssets="All" Version="3.8.0.2" />
+    <PackageReference Include="Apos.Gui" Version="0.12.1" />
   </ItemGroup>
 
   <ItemGroup>
