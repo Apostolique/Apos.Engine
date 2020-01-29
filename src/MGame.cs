@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Apos.Input;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -214,6 +215,7 @@ namespace Apos.Engine
             SpriteBatchExtensions.Initialize(GraphicsDevice = base.GraphicsDevice);
             _oldBackBufferSize = (GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
             _oldViewportRes = (Viewport.Width, Viewport.Height);
+            InputHelper.Setup(this);
             base.Initialize();
         }
 
@@ -229,7 +231,10 @@ namespace Apos.Engine
             Time.DeltaTicks = gameTime.ElapsedGameTime.Ticks;
             Time.DeltaTime = (float)(Time.DeltaTimeFull = gameTime.ElapsedGameTime.TotalSeconds);
             Time.TotalTime = (float)(Time.TotalTimeFull = gameTime.TotalGameTime.TotalSeconds);
+            IsActive = base.IsActive;
+            InputHelper.UpdateSetup();
             _room.Update();
+            InputHelper.UpdateCleanup();
             base.Update(gameTime);
         }
 
