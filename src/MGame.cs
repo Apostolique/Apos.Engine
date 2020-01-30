@@ -7,12 +7,11 @@ using System.Collections.Generic;
 
 namespace Apos.Engine
 {
-    public enum UpdateState { Cancelled, Finished }
     public enum DrawState { Cancelled, Finished }
     public enum WindowState { Windowed, Fullscreen, Borderless }
 
     public delegate void SizeChangedEvent(int oldWidth, int oldHeight);
-    public delegate UpdateState UpdateEvent();
+    public delegate void UpdateEvent();
     public delegate DrawState DrawEvent(SpriteBatch spriteBatch);
 
     public class Room
@@ -104,6 +103,8 @@ namespace Apos.Engine
         }
         public static (int Width, int Height, float HalfWidth, float HalfHeight) VirtualRes { get; private set; }
         public static long TicksPerUpdate { get; private set; }
+
+        internal static readonly HashSet<UpdateEvent> _tempUpdateEvents = new HashSet<UpdateEvent>();
 
         static (int Width, int Height) _oldViewportRes,
             _oldBackBufferSize;
@@ -234,6 +235,9 @@ namespace Apos.Engine
             IsActive = base.IsActive;
             InputHelper.UpdateSetup();
             _room.Update();
+            foreach (var e in _tempUpdateEvents)
+                e();
+            _tempUpdateEvents.Clear();
             InputHelper.UpdateCleanup();
             base.Update(gameTime);
         }
