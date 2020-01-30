@@ -22,20 +22,57 @@ namespace Apos.Engine
                 _mainNode.FreeSubNodes();
                 _mainNode.Reset();
                 _mainNode.Bounds = value;
+                int NodeCount(Point b)
+                {
+                    var r = 1;
+                    if (b.X * b.Y > 1024)
+                        r += NodeCount(new Point(b.X / 2, b.Y / 2)) * 4;
+                    return r;
+                }
+                Pool<Node>.EnsureSize(NodeCount(new Point(value.Width, value.Height)));
                 foreach (var i in items)
                     _stored[i] = _mainNode.Add(i);
-                Pool<Node>.EnsureSize((int)MathF.Ceiling(value.Width / 32f * value.Height / 32f));
             }
         }
 
-        public static readonly IDictionary<T, Node> _stored = new Dictionary<T, Node>();
-
         /// <summary>Returns true if <paramref name="item"/> is in the tree</summary>
         public static bool Contains(T item) => _stored.ContainsKey(item);
+        public static IEnumerable<(T Item, Rectangle Node)> Items
+        {
+            get
+            {
+                foreach (var i in _stored)
+                    yield return (i.Key, i.Value.Bounds);
+            }
+        }
+        public static IEnumerable<Rectangle> Nodes
+        {
+            get
+            {
+                IEnumerable<Node> Nodes(Node n)
+                {
+                    yield return n;
+                    if (n._nw == null)
+                        yield break;
+                    foreach (var n2 in Nodes(n._ne))
+                        yield return n2;
+                    foreach (var n2 in Nodes(n._se))
+                        yield return n2;
+                    foreach (var n2 in Nodes(n._sw))
+                        yield return n2;
+                    foreach (var n2 in Nodes(n._nw))
+                        yield return n2;
+                }
+                foreach (var n in Nodes(_mainNode))
+                    yield return n.Bounds;
+            }
+        }
 
-        readonly static Node _mainNode = new Node();
+        static readonly Node _mainNode = new Node();
+        static readonly IDictionary<T, Node> _stored = new Dictionary<T, Node>();
 
         static (T Item, Point HalfSize, Point Size) _maxSizeAABB;
+        static int _extendToN = int.MaxValue, _extendToE, _extendToS, _extendToW = int.MaxValue;
 
         /// <summary>Insert (<paramref name="item"/>) into the tree</summary>
         public static void Add(T item)
@@ -43,14 +80,17 @@ namespace Apos.Engine
             _stored.Add(item, _mainNode.Add(item));
             if (item.AABB.Width > _maxSizeAABB.Size.X || item.AABB.Height > _maxSizeAABB.Size.Y)
                 _maxSizeAABB = (item, new Point((int)MathF.Ceiling(item.AABB.Width / 2f), (int)MathF.Ceiling(item.AABB.Height / 2f)), new Point(item.AABB.Width, item.AABB.Height));
-            var iCenter = item.AABB.Center;
-            if (Bounds.Left > iCenter.X || Bounds.Top > iCenter.Y || Bounds.Right < iCenter.X + 1 || Bounds.Bottom < iCenter.Y + 1)
+            if (Bounds.Left > item.AABB.Center.X || Bounds.Top > item.AABB.Center.Y || Bounds.Right < item.AABB.Center.X + 1 || Bounds.Bottom < item.AABB.Center.Y + 1)
             {
-                int newLeft = Math.Min(Bounds.Left, iCenter.X),
-                    newTop = Math.Min(Bounds.Top, iCenter.Y),
-                    newWidth = Bounds.Right - newLeft,
-                    newHeight = Bounds.Bottom - newTop;
-                Bounds = new Rectangle(newLeft, newTop, Math.Max(newWidth, iCenter.X - newLeft + 1), Math.Max(newHeight, iCenter.Y - newTop + 1));
+                if (item.AABB.Center.Y < _extendToN)
+                    _extendToN = item.AABB.Center.Y;
+                if (item.AABB.Center.X > _extendToE)
+                    _extendToE = item.AABB.Center.X;
+                if (item.AABB.Center.Y > _extendToS)
+                    _extendToS = item.AABB.Center.Y;
+                if (item.AABB.Center.X < _extendToW)
+                    _extendToW = item.AABB.Center.X;
+                MGame._tempUpdateEvents.Add(Extend);
             }
         }
         /// <summary>Remove (<paramref name="item"/>) from the tree</summary>
@@ -78,14 +118,17 @@ namespace Apos.Engine
         public static void Update(T item)
         {
             _stored[item].Remove(item);
-            var iCenter = item.AABB.Center;
-            if (Bounds.Left > iCenter.X || Bounds.Top > iCenter.Y || Bounds.Right < iCenter.X + 1 || Bounds.Bottom < iCenter.Y + 1)
+            if (Bounds.Left > item.AABB.Center.X || Bounds.Top > item.AABB.Center.Y || Bounds.Right < item.AABB.Center.X + 1 || Bounds.Bottom < item.AABB.Center.Y + 1)
             {
-                int newLeft = Math.Min(Bounds.Left, iCenter.X),
-                    newTop = Math.Min(Bounds.Top, iCenter.Y),
-                    newWidth = Bounds.Right - newLeft,
-                    newHeight = Bounds.Bottom - newTop;
-                Bounds = new Rectangle(newLeft, newTop, Math.Max(newWidth, iCenter.X - newLeft + 1), Math.Max(newHeight, iCenter.Y - newTop + 1));
+                if (item.AABB.Center.Y < _extendToN)
+                    _extendToN = item.AABB.Center.Y;
+                if (item.AABB.Center.X > _extendToE)
+                    _extendToE = item.AABB.Center.X;
+                if (item.AABB.Center.Y > _extendToS)
+                    _extendToS = item.AABB.Center.Y;
+                if (item.AABB.Center.X < _extendToW)
+                    _extendToW = item.AABB.Center.X;
+                MGame._tempUpdateEvents.Add(Extend);
             }
             else
                 _stored[item] = _mainNode.Add(item);
@@ -102,23 +145,36 @@ namespace Apos.Engine
                 yield return i;
         }
 
-        public class Node : IPoolable
+        static void Extend()
+        {
+            int newLeft = Math.Min(Bounds.Left, _extendToW),
+                newTop = Math.Min(Bounds.Top, _extendToN),
+                newWidth = Bounds.Right - newLeft,
+                newHeight = Bounds.Bottom - newTop;
+            Bounds = new Rectangle(newLeft, newTop, Math.Max(newWidth, _extendToE - newLeft + 1), Math.Max(newHeight, _extendToS - newTop + 1));
+            _extendToN = int.MaxValue;
+            _extendToE = 0;
+            _extendToS = 0;
+            _extendToW = int.MaxValue;
+        }
+
+        class Node : IPoolable
         {
             const int CAPACITY = 8;
 
             public Rectangle Bounds { get; internal set; }
 
-            public int AllCount
+            public int Count
             {
                 get
                 {
                     int c = _items.Count;
                     if (_nw != null)
                     {
-                        c += _ne.AllCount;
-                        c += _se.AllCount;
-                        c += _sw.AllCount;
-                        c += _nw.AllCount;
+                        c += _ne.Count;
+                        c += _se.Count;
+                        c += _sw.Count;
+                        c += _nw.Count;
                     }
                     return c;
                 }
@@ -157,7 +213,7 @@ namespace Apos.Engine
                 }
             }
 
-            readonly HashSet<T> _items = new HashSet<T>();
+            readonly HashSet<T> _items = new HashSet<T>(CAPACITY);
 
             internal Node _parent, _ne, _se, _sw, _nw;
 
@@ -210,7 +266,7 @@ namespace Apos.Engine
             public void Remove(T item)
             {
                 _items.Remove(item);
-                if (_parent?._nw != null && _parent.AllCount < CAPACITY)
+                if (_parent?._nw != null && _parent.Count < CAPACITY)
                 {
                     foreach (var i in _parent.AllSubItems)
                     {
