@@ -73,6 +73,7 @@ namespace Apos.Engine
 
         static (T Item, Point HalfSize, Point Size) _maxSizeAABB;
         static int _extendToN = int.MaxValue, _extendToE, _extendToS, _extendToW = int.MaxValue;
+        static HashSet<Node> _nodesToClean = new HashSet<Node>();
 
         /// <summary>Insert (<paramref name="item"/>) into the tree</summary>
         public static void Add(T item)
@@ -97,6 +98,7 @@ namespace Apos.Engine
         public static void Remove(T item)
         {
             _stored[item].Remove(item);
+            MGame._tempUpdateEvents.Add(CleanNodes);
             _stored.Remove(item);
             if (ReferenceEquals(item, _maxSizeAABB.Item))
             {
@@ -118,6 +120,7 @@ namespace Apos.Engine
         public static void Update(T item)
         {
             _stored[item].Remove(item);
+            MGame._tempUpdateEvents.Add(CleanNodes);
             if (Bounds.Left > item.AABB.Center.X || Bounds.Top > item.AABB.Center.Y || Bounds.Right < item.AABB.Center.X + 1 || Bounds.Bottom < item.AABB.Center.Y + 1)
             {
                 if (item.AABB.Center.Y < _extendToN)
@@ -143,6 +146,13 @@ namespace Apos.Engine
             foreach (var i in _mainNode.Query(new Rectangle((int)MathF.Round(pos.X - _maxSizeAABB.HalfSize.X), (int)MathF.Round(pos.Y - _maxSizeAABB.HalfSize.Y), _maxSizeAABB.Size.X + 1, _maxSizeAABB.Size
                 .Y + 1), new Rectangle((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y), 1, 1)))
                 yield return i;
+        }
+
+        static void CleanNodes()
+        {
+            foreach (var n in _nodesToClean)
+                n.Clean();
+            _nodesToClean.Clear();
         }
 
         static void Extend()
@@ -266,23 +276,9 @@ namespace Apos.Engine
             public void Remove(T item)
             {
                 _items.Remove(item);
-                if (_parent?._nw != null && _parent.Count < CAPACITY)
-                {
-                    foreach (var i in _parent.AllSubItems)
-                    {
-                        _parent._items.Add(i);
-                        _stored[i] = _parent;
-                    }
-                    Pool<Node>.Free(_parent._ne);
-                    Pool<Node>.Free(_parent._se);
-                    Pool<Node>.Free(_parent._sw);
-                    Pool<Node>.Free(_parent._nw);
-                    _parent._ne = null;
-                    _parent._se = null;
-                    _parent._sw = null;
-                    _parent._nw = null;
-                }
+                _nodesToClean.Add(this);
             }
+
             public IEnumerable<T> Query(Rectangle broad, Rectangle query)
             {
                 if (_nw == null)
@@ -360,6 +356,25 @@ namespace Apos.Engine
                 _se = null;
                 _sw = null;
                 _nw = null;
+            }
+            internal void Clean()
+            {
+                if (_parent?._nw != null && _parent.Count < CAPACITY)
+                {
+                    foreach (var i in _parent.AllSubItems)
+                    {
+                        _parent._items.Add(i);
+                        _stored[i] = _parent;
+                    }
+                    Pool<Node>.Free(_parent._ne);
+                    Pool<Node>.Free(_parent._se);
+                    Pool<Node>.Free(_parent._sw);
+                    Pool<Node>.Free(_parent._nw);
+                    _parent._ne = null;
+                    _parent._se = null;
+                    _parent._sw = null;
+                    _parent._nw = null;
+                }
             }
         }
     }
